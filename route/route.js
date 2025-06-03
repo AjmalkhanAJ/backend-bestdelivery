@@ -1,118 +1,3 @@
-// const express = require ('express');
-// const router = express.Router();
-// const {customer, item} = require('../schema/schema');
-
-// //  Add a Customer
-// router.post('/addcustomer', async (req, res) => {
-//   const {  mobile , password } = req.body;
-
-//   if (!mobile || !password) {
-//     return res.status(400).json("Please fill all fields");
-//   }
-
-//   try {
-//     const existing = await customer.findOne({ mobile });
-//     if (existing) {
-//       return res.status(409).json("Customer already exists");
-//     }
-
-//     const newcustomer = new customer({  mobile , password });
-//     await newcustomer.save();
-//     res.status(201).json(newcustomer);
-//   } catch (err) {
-//     res.status(500).json(err.message);
-//   }
-// });
-
-// //  Get all Customers
-// router.get('/customer', async (req, res) => {
-//   try {
-//     const customers = await customer.find();
-//     res.send(customers);
-//   } catch (err) {
-//     res.status(500).json(err.message);
-//   }
-// });
-
-// //  Delete Customer
-// router.delete('/deletecustomer/:id', async (req, res) => {
-//   const _id = req.params.id;
-//   try {
-//     const deleted = await customer.findByIdAndDelete(_id);
-//     if (!deleted) return res.status(404).json("Customer not found");
-//     res.status(200).json({ message: "Customer deleted successfully" });
-//   } catch (err) {
-//     res.status(400).json(err.message);
-//   }
-// });
-
-
-// //  Add an Item
-// router.post('/additem', async (req, res) => {
-//   const { id, name, address, mobile, rating, timing } = req.body;
-
-//   if (!id || !name || !address || !mobile || !rating || !timing) { 
-//     return res.status(400).json("Please fill all fields");
-//   }
-
-//   try {
-//     const newItem = new Item({ id, name, address, mobile, rating, timing });
-//     await newItem.save();
-//     res.status(201).json(newItem);
-//   } catch (err) {
-//     res.status(500).json(err.message);
-//   }
-// });
-
-// //  Get all Items
-// router.get('/items', async (req, res) => {
-//   try {
-//     const items = await Item.find();
-//     res.status(200).json(items);
-//   } catch (err) {
-//     res.status(500).json(err.message);
-//   }
-// });
-
-
-
-
-// // update Items
-// router.put('/updateitems/:id',async(req,res)=>{
-//     try{
-//         const _id = req.params.id;
-//         const body = req.body;
-//         const updateitems = await item.findByIdAndUpdate(_id,body,{new:true});
-
-//         if(!updateitems){
-//             res.status(201).send({
-//                 "status":true,
-//                 "message":"items as updated ... !!!"
-//             });
-//         }
-//         return res.status(200).send(updateitems);
-//     }
-//     catch(error){
-//         res.status(400).send(error);
-//     }
-// });
-
-// //  Delete Item
-// router.delete('/deleteitem/:id', async (req, res) => {
-//   const _id = req.params.id;
-
-//   try {
-//     const deleted = await Item.findByIdAndDelete(_id);
-//     if (!deleted) return res.status(404).json("Item not found");
-//     res.status(200).json({ message: "Item deleted successfully" });
-//   } catch (err) {
-//     res.status(400).json(err.message);
-//   }
-// });
-
-
-// module.exports = router;
-
 
 const express = require ('express');
 const router = express.Router();
@@ -123,30 +8,36 @@ router.post('/addcustomer', async (req, res) => {
   const { mobile, password } = req.body;
 
   if (!mobile || !password) {
-    return res.status(400).json("Please fill all fields");
+    return res.status(400).json({ message: "Please fill all fields" });
   }
 
   try {
+    // Check if a customer already exists with the same mobile number
     const existing = await customer.findOne({ mobile });
     if (existing) {
-      return res.status(409).json("Customer already exists");
+      return res.status(400).json({ message: "Customer already exists" });
     }
 
+    // Create new customer
     const newcustomer = new customer({ mobile, password });
     await newcustomer.save();
-    res.status(400).json(newcustomer);
+
+    res.status(201).json(newcustomer); // contains _id used in frontend
   } catch (err) {
-    res.status(500).json(err.message);
+    res.status(500).json({ message: err.message });
   }
 });
 
+
+
 //  Get all Customers
-router.post('/customer/:mobile', async (req, res) => {
-  const mobile=req.params.mobile;
-  const {password}=req.body;
+router.post('/customer/login', async (req, res) => {
+  // const mobile=req.params.mobile;
+  const {mobile, password}=req.body;
   try {
     const customers = await customer.findOne({"mobile":mobile,"password":password});
-    res.send(customers);
+    console.log(customers);
+    res.send(customers)({ message: "login successful" });
   } catch (err) {
     res.status(500).json(err.message);
   }
@@ -165,67 +56,77 @@ router.post('/customer/:mobile', async (req, res) => {
 // });
 
 
-//  Add an Item
-router.post('/additem', async (req, res) => {
-  const { cusid, proname, proprice, proimg, overallquantity, total } = req.body;
+// Add item to cart for user id
+router.post('/additem/:id', async (req, res) => {
+  const cusid = req.params.id;
+  const { proname, proprice, proimg, overallquantity, total } = req.body;
 
-  if (!cusid ||  !proname || !proprice || !proimg || !overallquantity || !total ) { 
-    return res.status(400).json("Please fill all fields");
+  if (!cusid || !proname || !proprice || !proimg || !overallquantity || !total) {
+    return res.status(400).json({ message: "Please fill all fields" });
   }
 
   try {
-    const newItem = new item({ cusid, proname, proprice, proimg, overallquantity, total });
+    const existingItem = await item.findOne({ cusid, proname });
+    if (existingItem) {
+      return res.status(400).json({ message: "Product already added to cart" });
+    }
 
+    const newItem = new item({ cusid, proname, proprice, proimg, overallquantity, total });
     await newItem.save();
-    res.status(400).json(newItem);
+
+    return res.status(201).json(newItem);
   } catch (err) {
-    res.status(500).json(err.message);
+    return res.status(500).json({ message: err.message });
   }
 });
 
-//  Get all Items
-router.get('/items', async (req, res) => {
+// Get cart items for a specific customer id (needed for Cart.js fetch)
+router.get('/getcart/:id', async (req, res) => {
+  const cusid = req.params.id;
+  console.log('Fetching cart for customer id:', cusid);
+
   try {
-    const items = await Item.find();
+    const items = await item.find({ cusid });
+    console.log('Items found:', items);
+
     res.status(200).json(items);
   } catch (err) {
-    res.status(500).json(err.message);
+    console.error('Error fetching cart:', err.stack || err);
+    res.status(500).json({ message: err.message });
   }
 });
 
 
+// Update quantity (matches frontend call)
+router.put('/updatequantity/:id', async (req, res) => {
+  const _id = req.params.id;
+  const { change } = req.body; // expects { change: 1 } or { change: -1 }
 
+  try {
+    const item = await Item.findById(_id);
+    if (!item) return res.status(404).json({ message: "Item not found" });
 
-// update Items
-router.put('/updateitems/:id',async(req,res)=>{
-    try{
-        const _id = req.params.id;
-        const body = req.body;
-        const updateitems = await item.findByIdAndUpdate(_id,body,{new:true});
+    const newQuantity = Math.max(1, item.overallquantity + change);
+    item.overallquantity = newQuantity;
+    item.total = newQuantity * item.proprice;
 
-        if(!updateitems){
-            res.status(201).send({
-                "status":true,
-                "message":"items as updated ... !!!"
-            });
-        }
-        return res.status(200).send(updateitems);
-    }
-    catch(error){
-        res.status(400).send(error);
-    }
+    await item.save();
+    res.status(200).json({ success: true, updatedItem: item });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
 });
 
-//  Delete Item
-router.delete('/deleteitem/:id', async (req, res) => {
+// Remove item from cart (matches frontend call)
+router.delete('/removeitem/:id', async (req, res) => {
   const _id = req.params.id;
 
   try {
     const deleted = await Item.findByIdAndDelete(_id);
-    if (!deleted) return res.status(404).json("Item not found");
+    if (!deleted) return res.status(404).json({ message: "Item not found" });
     res.status(200).json({ message: "Item deleted successfully" });
   } catch (err) {
-    res.status(400).json(err.message);
+    res.status(500).json({ message: err.message });
   }
 });
 
@@ -234,7 +135,7 @@ router.delete('/deleteitem/:id', async (req, res) => {
 // Create a new order
 router.post('/orders', async (req, res) => {
     try {
-        const newOrder = new Order(req.body);
+        const newOrder = new order(req.body);
         await newOrder.save();
         res.status(201).json({ message: 'Order placed successfully', order: newOrder });
     } catch (err) {
@@ -245,7 +146,7 @@ router.post('/orders', async (req, res) => {
 // Get all orders
 router.get('/orders', async (req, res) => {
     try {
-        const orders = await Order.find();
+        const orders = await order.find();
         res.json(orders);
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -255,7 +156,7 @@ router.get('/orders', async (req, res) => {
 // Get a single order by ID
 router.get('/orders/:id', async (req, res) => {
     try {
-        const order = await Order.findById(req.params.id);
+        const order = await order.findById(req.params.id);
         if (!order) return res.status(404).json({ message: 'Order not found' });
         res.json(order);
     } catch (err) {
@@ -266,7 +167,7 @@ router.get('/orders/:id', async (req, res) => {
 // Delete an order by ID
 router.delete('/orders/:id', async (req, res) => {
     try {
-        const result = await Order.findByIdAndDelete(req.params.id);
+        const result = await order.findByIdAndDelete(req.params.id);
         if (!result) return res.status(404).json({ message: 'Order not found' });
         res.json({ message: 'Order deleted successfully' });
     } catch (err) {
