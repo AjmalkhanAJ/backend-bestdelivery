@@ -8,7 +8,7 @@ const router = require ('../route/route');
 
 const customer = require ('../schema/schema');
 const items = require ('../schema/schema');
-const order = require ('../schema/schema')
+const order = require ('../schema/schema');
 
 
 app.use(cors());

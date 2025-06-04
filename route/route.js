@@ -1,7 +1,7 @@
 
 const express = require ('express');
 const router = express.Router();
-const {customer, item, order } = require('../schema/schema');
+const { customer , item , order , cart} = require('../schema/schema');
 
 //  Add a Customer
 router.post('/addcustomer', async (req, res) => {
@@ -103,11 +103,11 @@ router.put('/updatequantity/:id', async (req, res) => {
   const { change } = req.body; // expects { change: 1 } or { change: -1 }
 
   try {
-    const item = await Item.findById(_id);
+    const item = await item.findById(_id);
     if (!item) return res.status(404).json({ message: "Item not found" });
 
-    const newQuantity = Math.max(1, item.overallquantity + change);
-    item.overallquantity = newQuantity;
+    const newQuantity = Math.max(1, item.quantity + change);
+    item.quantity = newQuantity;
     item.total = newQuantity * item.proprice;
 
     await item.save();
@@ -117,12 +117,14 @@ router.put('/updatequantity/:id', async (req, res) => {
   }
 });
 
+
+
 // Remove item from cart (matches frontend call)
 router.delete('/removeitem/:id', async (req, res) => {
   const _id = req.params.id;
 
   try {
-    const deleted = await Item.findByIdAndDelete(_id);
+    const deleted = await item.findByIdAndDelete(_id);
     if (!deleted) return res.status(404).json({ message: "Item not found" });
     res.status(200).json({ message: "Item deleted successfully" });
   } catch (err) {
@@ -133,15 +135,32 @@ router.delete('/removeitem/:id', async (req, res) => {
 
 
 // Create a new order
-router.post('/orders', async (req, res) => {
-    try {
-        const newOrder = new order(req.body);
-        await newOrder.save();
-        res.status(201).json({ message: 'Order placed successfully', order: newOrder });
-    } catch (err) {
-        res.status(400).json({ error: err.message });
-    }
+// router.post('/orders/:id', async (req, res) => {
+//     try {
+//         const newOrder = new order(req.body);
+//         await newOrder.save();
+//         res.status(201).json({ message: 'Order placed successfully', order: newOrder });
+//     } catch (err) {
+//         res.status(400).json({ error: err.message });
+//     }
+// });
+
+router.post('/orders/:id', async (req, res) => {
+  const order = req.body.orders;
+  
+  if (!Array.isArray(order) || order.length === 0) {
+    return res.status(400).json({ message: 'No orders provided' });
+  }
+  try {
+    const savedOrders = await order.insertMany(order);
+    res.status(201).json({ message: 'Orders placed successfully', orders: savedOrders });
+    console.log(req.body.orders)
+  } catch (err) {
+    console.error("Insert failed:", err);
+    res.status(400).json({ error: err.message });
+  }
 });
+
 
 // Get all orders
 router.get('/orders', async (req, res) => {
@@ -149,7 +168,7 @@ router.get('/orders', async (req, res) => {
         const orders = await order.find();
         res.json(orders);
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        res.status(201).json({ error: err.message });
     }
 });
 
