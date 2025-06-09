@@ -40,7 +40,7 @@ const itemschema = new mongoose.Schema({
 
 const orderschema = new mongoose.Schema({
   cusid: {
-    type: Number,
+    type: String,
     required: true
   },
   proname: {
@@ -72,7 +72,7 @@ const orderschema = new mongoose.Schema({
     required: true
   },
   paymentmethods: {
-    type: Number,
+    type: String,
     required: true
   },
   grandtotal: {
@@ -80,6 +80,7 @@ const orderschema = new mongoose.Schema({
     required: true
   }
 });
+
 
 const customer = mongoose.model("customer", customerschema);
 const item = mongoose.model("item", itemschema);

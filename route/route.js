@@ -1,7 +1,7 @@
 
 const express = require ('express');
 const router = express.Router();
-const { customer , item , order , cart} = require('../schema/schema');
+const { customer , item , order } = require('../schema/schema');
 
 //  Add a Customer
 router.post('/addcustomer', async (req, res) => {
@@ -22,7 +22,7 @@ router.post('/addcustomer', async (req, res) => {
     const newcustomer = new customer({ mobile, password });
     await newcustomer.save();
 
-    res.status(201).json(newcustomer); // contains _id used in frontend
+    res.status(201).json(newcustomer);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -32,7 +32,6 @@ router.post('/addcustomer', async (req, res) => {
 
 //  Get all Customers
 router.post('/customer/login', async (req, res) => {
-  // const mobile=req.params.mobile;
   const {mobile, password}=req.body;
   try {
     const customers = await customer.findOne({"mobile":mobile,"password":password});
@@ -98,26 +97,21 @@ router.get('/getcart/:id', async (req, res) => {
 
 
 // Update quantity (matches frontend call)
+
 router.put('/updatequantity/:id', async (req, res) => {
   const _id = req.params.id;
-  const { change } = req.body; // expects { change: 1 } or { change: -1 }
+  const { change } = req.body;
 
   try {
-    const item = await item.findById(_id);
-    if (!item) return res.status(404).json({ message: "Item not found" });
-
-    const newQuantity = Math.max(1, item.quantity + change);
-    item.quantity = newQuantity;
-    item.total = newQuantity * item.proprice;
-
-    await item.save();
-    res.status(200).json({ success: true, updatedItem: item });
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
+    const foundItem = await item.findById(_id); // ✅ use different name
+    if (!foundItem) return res.status(404).json({ message: "Item not found" });
+    const newQuantity = Math.max(1, foundItem.overallquantity + change);
+    foundItem.overallquantity = newQuantity;
+    foundItem.total = newQuantity * foundItem.proprice;
+    await foundItem.save();
+    res.status(200).json({ success: true, updatedItem: foundItem });
+  } catch (err) {res.status(500).json({ message: err.message });}
 });
-
-
 
 // Remove item from cart (matches frontend call)
 router.delete('/removeitem/:id', async (req, res) => {
@@ -132,29 +126,17 @@ router.delete('/removeitem/:id', async (req, res) => {
   }
 });
 
-
-
-// Create a new order
-// router.post('/orders/:id', async (req, res) => {
-//     try {
-//         const newOrder = new order(req.body);
-//         await newOrder.save();
-//         res.status(201).json({ message: 'Order placed successfully', order: newOrder });
-//     } catch (err) {
-//         res.status(400).json({ error: err.message });
-//     }
-// });
-
 router.post('/orders/:id', async (req, res) => {
-  const order = req.body.orders;
+  const orders = req.body.orders;  
   
-  if (!Array.isArray(order) || order.length === 0) {
+  if (!Array.isArray(orders) || orders.length === 0) {
     return res.status(400).json({ message: 'No orders provided' });
   }
   try {
-    const savedOrders = await order.insertMany(order);
+    const savedOrders = await order.insertMany(orders);
+    console.log(savedOrders);
     res.status(201).json({ message: 'Orders placed successfully', orders: savedOrders });
-    console.log(req.body.orders)
+    console.log('Orders saved:', savedOrders)
   } catch (err) {
     console.error("Insert failed:", err);
     res.status(400).json({ error: err.message });
@@ -193,7 +175,6 @@ router.delete('/orders/:id', async (req, res) => {
         res.status(500).json({ error: err.message });
     }
 });
-
 
 module.exports = router;
 
